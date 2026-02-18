@@ -27,12 +27,14 @@ func main() {
 		dbURL = defaultDatabaseURL
 	}
 
+	// connect to database
 	dbPool, err := pgxpool.New(context.Background(), dbURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer dbPool.Close()
 
+	// dependency injection
 	queries := db.New(dbPool)
 	userRepo := user.NewSQLCRepository(queries)
 	userService := user.NewService(userRepo)
@@ -49,6 +51,7 @@ func main() {
 			log.Printf("failed to write health response: %v", err)
 		}
 	})
+	// serve OpenAPI spec and Swagger UI
 	router.Get("/doc/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "internal/openapi/openapi.yaml")
 	})
@@ -58,6 +61,7 @@ func main() {
 	router.Get("/doc/*", httpSwagger.Handler(
 		httpSwagger.URL("/doc/openapi.yaml"),
 	))
+	// user management endpoints
 	router.Post("/users", userHandler.CreateUser)
 	router.Get("/users", userHandler.ListUsers)
 	router.Get("/users/{id}", userHandler.GetUserByID)
